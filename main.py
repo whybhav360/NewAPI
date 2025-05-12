@@ -1,43 +1,54 @@
-from fastapi import FastAPI, Query
+# main.py
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from model import df, country_series, forecast_country, generate_forecast_image
+from pydantic import BaseModel
+from model import forecast_country, generate_forecast_image, country_series, df
+import uvicorn
 
 app = FastAPI()
 
-# CORS for frontend/Android access
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace with specific domain in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/predict")
-def predict(country: str = Query(..., description="Country name for prediction")):
-    try:
-        # Step 1: Get country time series
-        series = country_series[country].dropna()
+# Request model
+class CountryRequest(BaseModel):
+    country: str
 
-        # Step 2: Forecast
-        forecast_df = forecast_country(series, country_name=country)
-        if forecast_df is None:
-            return JSONResponse(status_code=500, content={"error": "Forecasting failed."})
+@app.get("/")
+def root():
+    return {"message": "Apricot Forecast API is running"}
 
-        # Step 3: Last 5 years historical data
-        historical_data = series.last('5Y')
+@app.post("/predict")
+def predict_apricot(request: CountryRequest):
+    country = request.country.strip()
+    
+    if country not in country_series.columns:
+        return {"error": f"No data available for country: {country}"}
 
-        # Step 4: Generate image
-        img_base64 = generate_forecast_image(forecast_df, country_name=country, historical_data=historical_data)
+    series = country_series[country].dropna()
+    forecast_df = forecast_country(series, country)
 
-        # Step 5: Send JSON response
-        return {
-            "forecast": forecast_df.to_dict(orient="records"),
-            "image_base64": img_base64
-        }
+    if forecast_df is None:
+        return {"error": "Forecasting failed."}
 
-    except KeyError:
-        return JSONResponse(status_code=404, content={"error": f"Country '{country}' not found."})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    historical_data = df[df['country'] == country]['apricot'].last('5Y')
+    historical_data.index = pd.to_datetime(historical_data.index)
+    historical_data = historical_data.asfreq('YS').interpolate().ffill().bfill()
+
+    image_base64 = generate_forecast_image(forecast_df, country, historical_data)
+
+    return {
+        "forecast": forecast_df.to_dict(orient="records"),
+        "plot_image_base64": image_base64
+    }
+
+# For local testing
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

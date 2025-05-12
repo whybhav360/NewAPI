@@ -1,3 +1,5 @@
+# model.py
+
 import pandas as pd
 import numpy as np
 from pmdarima import auto_arima
@@ -6,34 +8,70 @@ import warnings
 import io
 import base64
 import matplotlib.pyplot as plt
+import os
+import joblib
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# Load the dataset and clean it
+# ------------------ LOAD AND CLEAN DATA ------------------
+
 def load_data():
     df = pd.read_csv('Processed.csv')
-    df.columns = df.columns.str.strip()  # Clean column names
-    df = df.dropna(subset=['year', 'country', 'apricot'])  # Remove incomplete rows
+    df.columns = df.columns.str.strip()
+    df = df.dropna(subset=['year', 'country', 'apricot'])
     df['year'] = pd.to_datetime(df['year'], format='%Y', errors='coerce')
-    df = df.dropna(subset=['year'])  # Drop invalid dates
+    df = df.dropna(subset=['year'])
     df = df.set_index('year').sort_index()
     return df
 
-# Forecasting function
+df = load_data()
+country_series = df.pivot(columns='country', values='apricot')
+
+# ------------------ MODEL CACHING ------------------
+
+trained_models = {}
+
+def train_and_cache_models():
+    global trained_models
+    for country in country_series.columns:
+        series = country_series[country].dropna()
+        series.index = pd.to_datetime(series.index)
+        series = series.asfreq('YS').interpolate().ffill().bfill()
+
+        try:
+            auto_model = auto_arima(series, seasonal=False, trace=False, suppress_warnings=True)
+            arima_model = ARIMA(series, order=auto_model.order)
+            fitted_model = arima_model.fit()
+
+            trained_models[country] = {
+                'model': fitted_model,
+                'series': series
+            }
+            print(f"[INFO] Cached model for {country}")
+        except Exception as e:
+            print(f"[WARNING] Could not train model for {country}: {e}")
+
+# Load from disk if available
+if os.path.exists('trained_models.pkl'):
+    trained_models = joblib.load(open('trained_models.pkl', 'rb'))
+    print("[INFO] Loaded trained models from disk")
+else:
+    train_and_cache_models()
+    joblib.dump(trained_models, 'trained_models.pkl')
+    print("[INFO] Trained models saved to disk")
+
+# ------------------ FORECAST FUNCTION ------------------
+
 def forecast_country(series, country_name, forecast_years=5):
     try:
-        series.index = pd.to_datetime(series.index, errors='coerce')
-        series = series.asfreq('YS')  # Set frequency to Year Start
-        series = series.dropna().sort_index()
-        series = series.interpolate().ffill().bfill()
+        model_data = trained_models.get(country_name)
+        if model_data is None:
+            raise ValueError(f"No trained model for {country_name}")
 
-        # ARIMA model
-        model = auto_arima(series, seasonal=False, trace=False, suppress_warnings=True)
-        final_model = ARIMA(series, order=model.order)
-        model_fit = final_model.fit()
+        fitted_model = model_data['model']
+        series = model_data['series']
 
-        # Forecasting
-        forecast = model_fit.get_forecast(steps=forecast_years)
+        forecast = fitted_model.get_forecast(steps=forecast_years)
 
         last_year = series.index[-1].year
         future_years = [last_year + i for i in range(1, forecast_years + 1)]
@@ -49,7 +87,8 @@ def forecast_country(series, country_name, forecast_years=5):
         print(f"[ERROR] Forecast failed for {country_name}: {e}")
         return None
 
-# Plotting function to create image
+# ------------------ PLOT GENERATION ------------------
+
 def generate_forecast_image(forecast_df, country_name, historical_data):
     plt.figure(figsize=(8, 6))
     plt.plot(historical_data.index.year, historical_data.values, label='Historical Data', marker='o', color='blue')
@@ -75,7 +114,3 @@ def generate_forecast_image(forecast_df, country_name, historical_data):
     buf.close()
 
     return img_base64
-
-# Initialize the data
-df = load_data()
-country_series = df.pivot(columns='country', values='apricot')
