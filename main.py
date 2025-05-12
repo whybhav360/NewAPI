@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from model import forecast_country, generate_forecast_image, country_series, df
 import uvicorn
+import pandas as pd
 
 app = FastAPI()
 
