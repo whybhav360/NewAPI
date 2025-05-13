@@ -29,9 +29,8 @@ This FastAPI backend provides crop production forecasts (e.g., for apricots) bas
   "country": "India"
 }
 📤 Response:
-json
-Copy
-Edit
+```
+``` Response
 {
   "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
   "message": "In 2020, apricot production was 14,250 tons. In 2025, it is predicted to be 16,390 tons.",
@@ -40,12 +39,14 @@ Edit
     "2025": 16390.0
   }
 }
+```
+
 🛠️ Setup Instructions
 1. Clone this repo
 bash
 Copy
 Edit
-git clone https://github.com/yourusername/apricot-forecast-api.git
+git clone https://github.com/whybhav360/ApriForecast.git
 cd apricot-forecast-api
 2. Create a virtual environment
 bash
@@ -105,4 +106,4 @@ MIT License
 Pull requests are welcome! For major changes, open an issue first to discuss what you’d like to change.
 
 📬 Contact
-Built with ❤️ by Your Name
+Built with ❤️ by Vaibhav Madaan
