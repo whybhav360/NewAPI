@@ -30,7 +30,8 @@ This FastAPI backend provides crop production forecasts (e.g., for apricots) bas
 }
 📤 Response:
 ```
-``` Response
+**Response Body:**
+``` 
 {
   "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
   "message": "In 2020, apricot production was 14,250 tons. In 2025, it is predicted to be 16,390 tons.",
