@@ -46,7 +46,7 @@ def predict_apricot(request: CountryRequest):
     image_base64 = generate_forecast_image(forecast_df, country, historical_data)
 
     return {
-        "forecast": forecast_df.to_dict(orient="records"),
+        "prediction": f"Forecast completed for {country}",
         "plot_image_base64": image_base64
     }
 
