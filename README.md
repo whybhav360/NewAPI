@@ -28,9 +28,8 @@ This FastAPI backend provides crop production forecasts (e.g., for apricots) bas
 {
   "country": "India"
 }
-📤 Response:
 ```
-**Response Body:**
+** 📤Response Body:**
 ``` 
 {
   "image_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
