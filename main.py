@@ -1,4 +1,4 @@
-# main.py
+
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +9,7 @@ import pandas as pd
 
 app = FastAPI()
 
-# Enable CORS
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request model
+
 class CountryRequest(BaseModel):
     country: str
 
@@ -50,6 +50,6 @@ def predict_apricot(request: CountryRequest):
         "plot_image_base64": image_base64
     }
 
-# For local testing
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
